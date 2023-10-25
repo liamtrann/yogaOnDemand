@@ -1,0 +1,10 @@
+import "./admin";
+import "./asset";
+import "./category";
+import "./class";
+import "./cron";
+import "./instructor";
+import "./user";
+import "./utils";
+import "./video";
+import "./video_source"

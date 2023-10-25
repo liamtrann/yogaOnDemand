@@ -1,0 +1,14 @@
+// put overrides here
+
+$blue: #5099fb;
+
+$theme-colors: (
+  "blue": $blue,
+);
+
+//$input-border-color: rgba($blue, 0.5);
+//$input-placeholder-color: rgba($blue, 0.4);
+$input-padding-x: 1rem;
+$input-padding-y: 0.75rem;
+
+@import "node_modules/bootstrap/scss/bootstrap";

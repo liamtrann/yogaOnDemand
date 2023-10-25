@@ -1,0 +1,29 @@
+{
+  "name": "client",
+  "version": "1.0.0",
+  "description": "swagger compiled client of backend source code.",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "concurrently \"nodemon --watch ../backend/src --exec npm run build\" \"npm start\"",
+    "start": "node server.js",
+    "build": "npm run compile-yaml && npm run compile-client && tsc",
+    "compile-yaml": "swagger-jsdoc -d ../backend/swagger.js -o openapi.yaml '../backend/src/**/*.ts'",
+    "compile-client": "openapi-generator generate -i openapi.yaml -g typescript-fetch -o src --additional-properties=typescriptThreePlus=true,generateAliasAsModel=true,withInterfaces=true,modelPropertyNaming='original'"
+  },
+  "author": "Frame One Software Inc.",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "swagger-jsdoc": "4.0.0",
+    "@openapitools/openapi-generator-cli": "1.0.12-4.3.0"
+  },
+  "devDependencies": {
+    "concurrently": "5.2.0",
+    "express": "4.17.1",
+    "typescript": "3.9.7",
+    "swagger-ui-dist": "3.31.1",
+    "swagger-ui-express": "4.1.4",
+    "yamljs": "0.3.0",
+    "nodemon": "2.0.4"
+  },
+  "typings": "dist/index.d.ts"
+}

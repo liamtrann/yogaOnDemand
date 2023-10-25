@@ -1,0 +1,57 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo
+    restart: unless-stopped
+    ports:
+      - 27017:27017
+    volumes:
+      - ./data/mongo:/data/db:delegated
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+
+  backend:
+    build:
+      context: ./
+      dockerfile: ./backend/Dockerfile-local
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    volumes:
+      - ./backend/src:/usr/src/backend/src:delegated
+    env_file:
+      - ./local.env
+
+  admin:
+    build:
+      context: ./
+      dockerfile: ./admin/Dockerfile-local
+    depends_on:
+      - client_generation
+    restart: unless-stopped
+    ports:
+      - 8082:8080
+    volumes:
+      - ./admin/src:/usr/src/admin/src:delegated
+      - ./admin/public:/usr/src/admin/public:delegated
+      - ./client/src:/usr/src/client/src:delegated
+      - ./client/dist:/usr/src/client/dist:delegated
+    env_file:
+      - ./local.env
+
+  client_generation:
+    build:
+      context: ./
+      dockerfile: ./client/Dockerfile
+    restart: unless-stopped
+    ports:
+      - 8083:8080
+    volumes:
+      - ./backend/src:/usr/src/backend/src:delegated
+      - ./client/src:/usr/src/client/src:delegated
+      - ./client/dist:/usr/src/client/dist:delegated
+    env_file:
+      - ./local.env
+

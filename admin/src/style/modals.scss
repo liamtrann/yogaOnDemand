@@ -1,0 +1,21 @@
+.modal-selected-image {
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.image-thumbnail-container {
+  width: 100%;
+  height: 0;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio (divide 9 by 16 = 0.5625) */
+  position: relative;
+
+  img {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+

@@ -1,0 +1,150 @@
+import {app} from "@/index";
+import {AdminRole} from "@/models/Admin";
+import adminAuthentication from "@/middleware/authentication/adminAuthentication";
+import {promisify} from "util";
+import fs from "fs";
+import multer from "multer";
+import {Express} from "@/global";
+import Request = Express.Request;
+import {getUniqueAssetURLExtension} from "@/utils/generateUniqueString";
+import {DocumentType} from "@typegoose/typegoose";
+import {Asset, AssetCategory, assetModel, AssetOwnerType} from "@/models/Asset";
+import {isNil, omitBy} from "lodash";
+import {getErrors} from "@/utils/mongooseUtils";
+import {assetBucket} from "@/services/googleStorage";
+
+const upload = multer({dest: "assets/"})
+
+export interface CreateAssetManagerAssetRequest {
+	asset: any;
+	name?: string;
+	description?: string;
+	urlExtension?: string;
+}
+
+/**
+ * @swagger
+ * /asset/create_asset_manager_asset:
+ *   post:
+ *     operationId: createAssetManagerAsset
+ *     tags:
+ *       - asset
+ *     security:
+ *       - Admin: []
+ *     description: Uploads an asset to the asset manager for admins.
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - asset
+ *             properties:
+ *               asset:
+ *                 description: The binary for the asset
+ *                 type: string
+ *                 format: binary
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               urlExtension:
+ *                 type: string
+ *     responses:
+ *       '200':
+ *         description: OK
+ *       '400':
+ *         $ref: '#/components/responses/APIError'
+ *       '500':
+ *         $ref: '#/components/responses/APIError'
+ */
+app.post("/asset/create_asset_manager_asset",
+	adminAuthentication([AdminRole.GOD, AdminRole.STANDARD]),
+	upload.single("asset"),
+	async (req: Request<undefined, undefined, CreateAssetManagerAssetRequest>, res) => {
+
+		let {file, body: {name, description, urlExtension}} = req
+
+		// create async way to remove asset after API
+		const unlinkAsync = promisify(fs.unlink);
+		async function deleteFile() {
+			try {
+				await unlinkAsync(file.path);
+			} catch {}
+		}
+
+		try {
+
+			//check the size
+			if (!file || file.size < 1) {
+				res.status(400).send({messages: ["A file must be uploaded that is at least 1 byte."]});
+				await deleteFile();
+				return;
+			}
+
+			// check the urlExtension is valid
+			if (typeof urlExtension === "string" && urlExtension.length > 0) {
+
+				// check there isn't already an asset with the same extension
+				let found: DocumentType<Asset>;
+				try {
+					found = await assetModel.findById(urlExtension);
+				} catch {}
+
+				if (found !== undefined && found !== null) {
+					res.status(400).send({messages: ["This url extension is already in use."]});
+					await deleteFile();
+					return;
+				}
+			}
+			// if not passed in, get a unique one
+			else {
+				urlExtension = await getUniqueAssetURLExtension();
+			}
+
+			// create document
+			const date = Date.now();
+			const assetDocument = new assetModel(omitBy({
+				urlExtension,
+				category: AssetCategory.AdminAssetManager,
+				ownerType: AssetOwnerType.Admin,
+				owner: req.admin,
+				name: typeof name === "string" && name.length > 0 ? name : undefined,
+				description: typeof description === "string" && description.length > 0 ? description : undefined,
+				mimeType: file.mimetype,
+				size: file.size,
+				created: date,
+				lastUpdated: date,
+			}, isNil));
+
+			// validate document
+			const errors = await getErrors(assetDocument);
+			if (errors) {
+				res.status(400).send(errors);
+				await deleteFile();
+				return;
+			}
+
+			// upload to Google
+			await assetBucket.upload(file.path, {
+				destination: urlExtension,
+				contentType: file.mimetype,
+				gzip: true,
+			});
+
+			// save document
+			await assetDocument.save();
+
+			// send ok and delete local file
+			res.sendStatus(200);
+			await deleteFile();
+
+		} catch (e) {
+			// @ts-ignore
+			console.log("e:", e);
+			res.status(500).send({messages: ["An unexpected error occurred when uploading the file, please try again."]});
+			await deleteFile();
+		}
+
+
+	});

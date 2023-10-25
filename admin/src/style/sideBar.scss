@@ -1,0 +1,12 @@
+.sidebar {
+  width: 310px;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-header-toggle-icon {
+  /* this value is also used in the SideBarManager.tsx file for matching the screen width */
+  @media screen and (min-width: 992px) {
+    display: none !important;
+  }
+}

@@ -1,0 +1,19 @@
+@import "./bootstrap-override";
+@import "./sideBar";
+@import "./react-bootstrap-table";
+@import "./login";
+@import "./react-select";
+@import "./modals";
+@import "./checkbox";
+
+@import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap");
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  font-family: "Roboto", sans-serif;
+}
+
+.top-pick-table-class {
+  font-size: 1.5rem;
+}
